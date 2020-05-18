@@ -26,6 +26,7 @@ function TodoTreeView:new()
   self.times_cache = {}
   self.cache = {}
   self.cache_updated = false
+  self.init_size = true
 
   -- Items are generated from cache according to the mode
   self.items = {}
@@ -81,7 +82,7 @@ function TodoTreeView:refresh_cache()
 end
 
 
-local function find_file_todos(t, filename, tags)
+local function find_file_todos(t, filename)
   local fp = io.open(filename)
   if not fp then return t end
   local n = 1
@@ -117,7 +118,7 @@ function TodoTreeView:get_cached(item)
     t.abs_filename = system.absolute_path(item.filename)
     t.type = item.type
     t.todos = {}
-    find_file_todos(t.todos, t.filename, config.todo_tags)
+    find_file_todos(t.todos, t.filename)
     self.cache[t.filename] = t
   end
   return t
@@ -182,7 +183,7 @@ function TodoTreeView:each_item()
     local w = self.size.x
     local h = self:get_item_height()
 
-    for group, item in pairs(self.items) do
+    for _, item in pairs(self.items) do
       if #item.todos > 0 then
         coroutine.yield(item, ox, y, w, h)
         y = y + h
@@ -233,7 +234,12 @@ function TodoTreeView:update()
 
   -- update width
   local dest = self.visible and config.treeview_size or 0
-  self:move_towards(self.size, "x", dest)
+  if self.init_size then
+    self.size.x = dest
+    self.init_size = false
+  else
+    self:move_towards(self.size, "x", dest)
+  end
 
   TodoTreeView.super.update(self)
 end
@@ -242,13 +248,10 @@ end
 function TodoTreeView:draw()
   self:draw_background(style.background2)
 
-  local h = self:get_item_height()
+  --local h = self:get_item_height()
   local icon_width = style.icon_font:get_width("D")
   local spacing = style.font:get_width(" ") * 2
   local root_depth = 0
-
-  local doc = core.active_view.doc
-  local active_filename = doc and system.absolute_path(doc.filename or "")
 
   for item, x,y,w,h in self:each_item() do
     local color = style.text
@@ -264,7 +267,6 @@ function TodoTreeView:draw()
     x = x + (item_depth - root_depth) * style.padding.x + style.padding.x
     if item.type == "file" then
       local icon1 = item.expanded and "-" or "+"
-      local icon2 = item.expanded and "D" or "d"
       common.draw_text(style.icon_font, color, icon1, nil, x, y, 0, h)
       x = x + style.padding.x
       common.draw_text(style.icon_font, color, "f", nil, x, y, 0, h)
@@ -286,17 +288,16 @@ function TodoTreeView:draw()
     -- text
     x = x + spacing
     if item.type == "file" then
-      x = common.draw_text(style.font, color, item.filename, nil, x, y, 0, h)
+      common.draw_text(style.font, color, item.filename, nil, x, y, 0, h)
     elseif item.type == "group" then
-      x = common.draw_text(style.font, color, item.tag, nil, x, y, 0, h)
+      common.draw_text(style.font, color, item.tag, nil, x, y, 0, h)
     else
       if config.todo_mode == "file" then
-        x = common.draw_text(style.font, color, item.tag.." - "..item.text, nil, x, y, 0, h)
+        common.draw_text(style.font, color, item.tag.." - "..item.text, nil, x, y, 0, h)
       else
-        x = common.draw_text(style.font, color, item.text, nil, x, y, 0, h)
+        common.draw_text(style.font, color, item.text, nil, x, y, 0, h)
       end
     end
-    y = y + h
   end
 end
 
