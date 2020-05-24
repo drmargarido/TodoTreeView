@@ -11,6 +11,7 @@ This plugin will display notes that are in the code which start with:
 * FIXME
 * BUG
 * IMPROVEMENT
+Extra tags can be added if you add them to the `todo_tags` config.
 
 You can select between two modes:
 * tag - To display the notes organized by the note type
@@ -21,6 +22,7 @@ The plugin registers the following key bindings:
 * ctrl+shift+e - Expands all the groups
 * ctrl+shift+h - Hides all the groups
 
+You can ignore specific directories or files by using the `ignore_paths` config.
 
 ## Demo
 
@@ -41,4 +43,8 @@ table.insert(config.todo_tags, "CLEANUP")
 
 -- Change display mode
 config.todo_mode = "file"
+
+-- Ignore directory and ignore specific file
+table.insert(config.ignore_paths, "winlib/")
+table.insert(config.ignore_paths, "README.md")
 ```

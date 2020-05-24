@@ -11,6 +11,9 @@ local TodoTreeView = View:extend()
 
 config.todo_tags = {"TODO", "BUG", "FIX", "FIXME", "IMPROVEMENT"}
 
+-- Paths or files to be ignored
+config.ignore_paths = {}
+
 -- Tells if the plugin should start with the nodes expanded
 config.todo_expanded = true
 
@@ -32,6 +35,16 @@ function TodoTreeView:new()
   self.items = {}
 end
 
+local function is_file_ignored(filename)
+  for _, path in ipairs(config.ignore_paths) do
+    local s, _ = filename:find(path)
+    if s then
+      return true
+    end
+  end
+
+  return false
+end
 
 function TodoTreeView:refresh_cache()
   local items = {}
@@ -42,7 +55,8 @@ function TodoTreeView:refresh_cache()
 
   core.add_thread(function()
     for _, item in ipairs(core.project_files) do
-      if item.type == "file" then
+      local ignored = is_file_ignored(item.filename)
+      if not ignored and item.type == "file" then
         local cached = self:get_cached(item)
 
         if config.todo_mode == "file" then
