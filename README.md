@@ -32,7 +32,9 @@ Example of the `tag` view
 
 ## Instructions
 
-1. To install the plugin just copy the `todotreeview.lua` file to the folder `data/plugins/` of the lite editor.
+1. To install the plugin just copy the `todotreeview.lua` file (or the
+`todotreeview-xl.lua` if you are using lite-xl) to the folder `data/plugins/`
+of the lite editor.
 2. If you want to register extra tags or change the display mode to be used you
 can edit your `data/user/init.lua`:
 ```lua
@@ -48,3 +50,4 @@ config.todo_mode = "file"
 table.insert(config.ignore_paths, "winlib/")
 table.insert(config.ignore_paths, "README.md")
 ```
+
