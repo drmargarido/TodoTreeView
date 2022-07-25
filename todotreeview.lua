@@ -102,13 +102,19 @@ local function find_file_todos(t, filename)
   local n = 1
   for line in fp:lines() do
     for _, todo_tag in ipairs(config.todo_tags) do
+      -- Add spaces at the start and end of line so the pattern will pick
+      -- tags at the start and at the end of lines
+      local extended_line = " "..line.." "
       local match_str = "[^a-zA-Z_\"'`]"..todo_tag.."[^\"'a-zA-Z_`]+"
-      local s, e = line:find(match_str)
+      local s, e = extended_line:find(match_str)
       if s then
         local d = {}
         d.tag = todo_tag
         d.filename = filename
-        d.text = line:sub(e+1)
+        d.text = extended_line:sub(e+1)
+        if d.text == "" then
+          d.text = "blank"
+        end
         d.line = n
         d.col = s
         table.insert(t, d)
