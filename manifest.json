@@ -1,0 +1,15 @@
+{
+  "addons": [
+    {
+      "id": "todotreeview",
+      "version": "1.0",
+      "mod_version": "3",
+      "description": "A TODO tree view for Lite XL",
+      "files": [
+        {
+          "url": "https://github.com/drmargarido/TodoTreeView/blob/master/todotreeview.lua"
+        }
+      ]
+    }
+  ]
+}
