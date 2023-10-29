@@ -5,11 +5,7 @@
       "version": "0.1.1",
       "mod_version": "3",
       "description": "A TODO tree view for Lite XL",
-      "files": [
-        {
-          "url": "https://github.com/drmargarido/TodoTreeView/blob/master/todotreeview.lua"
-        }
-      ]
+      "path": "todotreeview-xl.lua"
     }
   ]
 }
