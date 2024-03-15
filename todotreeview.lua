@@ -30,6 +30,7 @@ function TodoTreeView:new()
   self.cache = {}
   self.cache_updated = false
   self.init_size = true
+  self.focus_index = 0
 
   -- Items are generated from cache according to the mode
   self.items = {}
@@ -144,7 +145,6 @@ function TodoTreeView:get_cached(item)
   return t
 end
 
-
 function TodoTreeView:get_name()
   return "Todo Tree"
 end
@@ -164,7 +164,6 @@ function TodoTreeView:get_cached_time(doc)
   end
   return t
 end
-
 
 function TodoTreeView:check_cache()
   for _, doc in ipairs(core.docs) do
@@ -321,6 +320,16 @@ function TodoTreeView:draw()
   end
 end
 
+function TodoTreeView:get_item_by_index(wanted_index)
+  local i = 0
+  for item in self:each_item() do
+    if wanted_index == i then
+      return item
+    end
+    i = i + 1
+  end
+  return nil
+end
 
 -- init
 local view = TodoTreeView()
@@ -345,9 +354,55 @@ command.add(nil, {
       item.expanded = false
     end
   end,
+
+  ["todotreeview:toggle-focus"] = function()
+    if not core.active_view:is(TodoTreeView) then
+      core.set_active_view(view)
+      view.hovered_item = view:get_item_by_index(view.focus_index)
+    end
+  end,
+})
+
+command.add(
+  function()
+    return core.active_view:is(TodoTreeView)
+  end, {
+  ["todotreeview:previous"] = function()
+    view.focus_index = view.focus_index - 1
+    view.hovered_item = view:get_item_by_index(view.focus_index)
+  end,
+
+  ["todotreeview:next"] = function()
+    view.focus_index = view.focus_index + 1
+    view.hovered_item = view:get_item_by_index(view.focus_index)
+  end,
+
+  ["todotreeview:collapse"] = function()
+    if not view.hovered_item then
+      return
+    end
+
+    if view.hovered_item.type == "file" or view.hovered_item.type == "group" then
+      view.hovered_item.expanded = false
+    end
+  end,
+
+  ["todotreeview:expand"] = function()
+    if not view.hovered_item then
+      return
+    end
+
+    if view.hovered_item.type == "file" or view.hovered_item.type == "group" then
+      view.hovered_item.expanded = true
+    end
+  end,
 })
 
 keymap.add { ["ctrl+shift+t"] = "todotreeview:toggle" }
 keymap.add { ["ctrl+shift+e"] = "todotreeview:expand-items" }
 keymap.add { ["ctrl+shift+h"] = "todotreeview:hide-items" }
+keymap.add { ["up"] = "todotreeview:previous" }
+keymap.add { ["down"] = "todotreeview:next" }
+keymap.add { ["left"] = "todotreeview:collapse" }
+keymap.add { ["right"] = "todotreeview:expand" }
 
