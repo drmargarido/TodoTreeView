@@ -7,7 +7,6 @@ local keymap = require "core.keymap"
 local style = require "core.style"
 local View = require "core.view"
 
-
 local TodoTreeView = View:extend()
 
 config.todo_tags = {"TODO", "BUG", "FIX", "FIXME", "IMPROVEMENT"}
@@ -33,6 +32,7 @@ function TodoTreeView:new()
   self.cache = {}
   self.cache_updated = false
   self.init_size = true
+  self.focus_index = 0
 
   -- Items are generated from cache according to the mode
   self.items = {}
@@ -239,6 +239,23 @@ function TodoTreeView:on_mouse_moved(px, py)
   end
 end
 
+function TodoTreeView:goto_hovered_item()
+  if not self.hovered_item then
+    return
+  end
+
+  if self.hovered_item.type == "group" or self.hovered_item.type == "file" then
+    return
+  end
+
+  core.try(function()
+    local i = self.hovered_item
+    local dv = core.root_view:open_doc(core.open_doc(i.filename))
+    core.root_view.root_node:update_layout()
+    dv.doc:set_selection(i.line, i.col)
+    dv:scroll_to_line(i.line, false, true)
+  end)
+end
 
 function TodoTreeView:on_mouse_pressed(button, x, y)
   if not self.hovered_item then
@@ -247,13 +264,7 @@ function TodoTreeView:on_mouse_pressed(button, x, y)
     or self.hovered_item.type == "group" then
     self.hovered_item.expanded = not self.hovered_item.expanded
   else
-    core.try(function()
-      local i = self.hovered_item
-      local dv = core.root_view:open_doc(core.open_doc(i.filename))
-      core.root_view.root_node:update_layout()
-      dv.doc:set_selection(i.line, i.col)
-      dv:scroll_to_line(i.line, false, true)
-    end)
+    self:goto_hovered_item()
   end
 end
 
@@ -330,6 +341,33 @@ function TodoTreeView:draw()
   end
 end
 
+function TodoTreeView:get_item_by_index(index)
+  local i = 0
+  for item in self:each_item() do
+    if index == i then
+      return item
+    end
+    i = i + 1
+  end
+  return nil
+end
+
+function TodoTreeView:get_hovered_parent()
+  local parent = nil
+  local parent_index = 0
+  local i = 0
+  for item in self:each_item() do
+    if item.type == "group" or item.type == "file" then
+      parent = item
+      parent_index = i
+    end
+    if i == self.focus_index then    
+      return parent, parent_index
+    end
+    i = i + 1
+  end
+  return nil, 0
+end
 
 -- init
 local view = TodoTreeView()
@@ -338,6 +376,7 @@ view.size.x = config.treeview_size
 node:split("right", view, {x=true}, true)
 
 -- register commands and keymap
+local previous_view = nil
 command.add(nil, {
   ["todotreeview:toggle"] = function()
     view.visible = not view.visible
@@ -354,9 +393,80 @@ command.add(nil, {
       item.expanded = false
     end
   end,
+
+  ["todotreeview:toggle-focus"] = function()
+    if not core.active_view:is(TodoTreeView) then
+      previous_view = core.active_view
+      core.set_active_view(view)
+      view.hovered_item = view:get_item_by_index(view.focus_index)
+    else
+      core.set_active_view(
+        previous_view or core.root_view:get_primary_node().active_view
+      )
+    end
+  end,
+})
+
+command.add(
+  function()
+    return core.active_view:is(TodoTreeView)
+  end, {
+  ["todotreeview:previous"] = function()
+    if view.focus_index > 0 then
+      view.focus_index = view.focus_index - 1
+      view.hovered_item = view:get_item_by_index(view.focus_index)
+    end
+  end,
+
+  ["todotreeview:next"] = function()
+    local next_index = view.focus_index + 1
+    local next_item = view:get_item_by_index(next_index)
+    if next_item then
+      view.focus_index = next_index
+      view.hovered_item = next_item
+    end
+  end,
+
+  ["todotreeview:collapse"] = function()
+    if not view.hovered_item then
+      return
+    end
+
+    if view.hovered_item.type == "file" or view.hovered_item.type == "group" then
+      view.hovered_item.expanded = false
+    else
+      view.hovered_item, view.focus_index = view:get_hovered_parent()
+    end
+  end,
+
+  ["todotreeview:expand"] = function()
+    if not view.hovered_item then
+      return
+    end
+
+    if view.hovered_item.type == "file" or view.hovered_item.type == "group" then
+      if view.hovered_item.expanded then
+        command.perform("todotreeview:next")
+      else
+        view.hovered_item.expanded = true
+      end
+    end
+  end,
+
+  ["todotreeview:open"] = function()
+    if not view.hovered_item then
+      return
+    end
+
+    view:goto_hovered_item()
+  end,
 })
 
 keymap.add { ["ctrl+shift+t"] = "todotreeview:toggle" }
 keymap.add { ["ctrl+shift+e"] = "todotreeview:expand-items" }
 keymap.add { ["ctrl+shift+h"] = "todotreeview:hide-items" }
-
+keymap.add { ["up"] = "todotreeview:previous" }
+keymap.add { ["down"] = "todotreeview:next" }
+keymap.add { ["left"] = "todotreeview:collapse" }
+keymap.add { ["right"] = "todotreeview:expand" }
+keymap.add { ["return"] = "todotreeview:open" }
