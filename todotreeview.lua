@@ -421,10 +421,7 @@ command.add(nil, {
       core.set_active_view(view)
       view.hovered_item = view:get_item_by_index(view.focus_index)
     else
-      core.set_active_view(
-        previous_view or core.root_view:get_primary_node().active_view
-      )
-      view.hovered_item = nil
+      command.perform("todotreeview:release-focus")
     end
   end,
 })
@@ -486,6 +483,13 @@ command.add(
     view:goto_hovered_item()
     view.hovered_item = nil
   end,
+
+  ["todotreeview:release-focus"] = function()
+    core.set_active_view(
+      previous_view or core.root_view:get_primary_node().active_view
+    )
+    view.hovered_item = nil
+  end,
 })
 
 keymap.add { ["ctrl+shift+t"] = "todotreeview:toggle" }
@@ -496,4 +500,5 @@ keymap.add { ["down"] = "todotreeview:next" }
 keymap.add { ["left"] = "todotreeview:collapse" }
 keymap.add { ["right"] = "todotreeview:expand" }
 keymap.add { ["return"] = "todotreeview:open" }
+keymap.add { ["escape"] = "todotreeview:release-focus" }
 
