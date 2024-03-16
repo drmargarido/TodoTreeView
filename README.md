@@ -22,6 +22,7 @@ The plugin registers the following key bindings:
 * ctrl+shift+t - Toggles the visibility of the view
 * ctrl+shift+e - Expands all the groups
 * ctrl+shift+h - Hides all the groups
+* ctrl+shift+b - Filters the notes
 
 You can ignore specific directories or files by using the `ignore_paths` config.
 

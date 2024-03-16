@@ -40,6 +40,7 @@ function TodoTreeView:new()
   self.cache_updated = false
   self.init_size = true
   self.focus_index = 0
+  self.filter = ""
 
   -- Items are generated from cache according to the mode
   self.items = {}
@@ -226,8 +227,11 @@ function TodoTreeView:each_item()
 
         for _, todo in ipairs(item.todos) do
           if item.expanded then
-            coroutine.yield(todo, ox, y, w, h)
-            y = y + h
+            local in_todo = string.find(todo.text:lower(), self.filter:lower())
+            if #self.filter == 0 or in_todo then
+              coroutine.yield(todo, ox, y, w, h)
+              y = y + h
+            end
           end
         end
       end
@@ -435,6 +439,27 @@ command.add(nil, {
       command.perform("todotreeview:release-focus")
     end
   end,
+
+  ["todotreeview:filter-items"] = function()
+    local todo_view_focus = core.active_view:is(TodoTreeView)
+    local previous_filter = view.filter
+    core.command_view:set_text(view.filter, true)
+    local submit = function(text)
+      view.filter = text
+      if todo_view_focus then
+        view.focus_index = 0
+        view.hovered_item = view:get_item_by_index(view.focus_index)
+        view:update_scroll_position()
+      end
+    end
+    local suggest = function(text)
+      view.filter = text
+    end
+    local cancel = function(explicit)
+      view.filter = previous_filter
+    end
+    core.command_view:enter("Filter Notes", submit, suggest, cancel)
+  end,
 })
 
 command.add(
@@ -506,9 +531,11 @@ command.add(
 keymap.add { ["ctrl+shift+t"] = "todotreeview:toggle" }
 keymap.add { ["ctrl+shift+e"] = "todotreeview:expand-items" }
 keymap.add { ["ctrl+shift+h"] = "todotreeview:hide-items" }
+keymap.add { ["ctrl+shift+b"] = "todotreeview:filter-items" }
 keymap.add { ["up"] = "todotreeview:previous" }
 keymap.add { ["down"] = "todotreeview:next" }
 keymap.add { ["left"] = "todotreeview:collapse" }
 keymap.add { ["right"] = "todotreeview:expand" }
 keymap.add { ["return"] = "todotreeview:open" }
 keymap.add { ["escape"] = "todotreeview:release-focus" }
+
