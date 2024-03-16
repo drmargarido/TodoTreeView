@@ -416,6 +416,7 @@ command.add(nil, {
       core.set_active_view(
         previous_view or core.root_view:get_primary_node().active_view
       )
+      view.hovered_item = nil
     end
   end,
 })
