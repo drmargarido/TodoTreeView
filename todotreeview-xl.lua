@@ -10,6 +10,13 @@ local View = require "core.view"
 local TodoTreeView = View:extend()
 
 config.todo_tags = {"TODO", "BUG", "FIX", "FIXME", "IMPROVEMENT"}
+config.tag_colors = {
+  TODO        = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+  BUG         = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+  FIX         = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+  FIXME       = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+  IMPROVEMENT = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+}
 
 -- Paths or files to be ignored
 config.ignore_paths = {}
@@ -294,12 +301,24 @@ function TodoTreeView:draw()
   local root_depth = 0
 
   for item, x,y,w,h in self:each_item() do
-    local color = style.text
+    local text_color = style.text
+    local tag_color = style.text
+    local file_color = style.text
+    if config.tag_colors[item.tag] then
+      text_color = config.tag_colors[item.tag].text or style.text
+      tag_color = config.tag_colors[item.tag].tag or style.text
+    end
 
     -- hovered item background
     if item == self.hovered_item then
       renderer.draw_rect(x, y, w, h, style.line_highlight)
-      color = style.accent
+      text_color = style.accent
+      tag_color = style.accent
+      file_color = style.accent
+      if config.tag_colors[item.tag] then
+        text_color = config.tag_colors[item.tag].text_hover or style.accent
+        tag_color = config.tag_colors[item.tag].tag_hover or style.accent
+      end
     end
 
     -- icons
@@ -307,13 +326,13 @@ function TodoTreeView:draw()
     x = x + (item_depth - root_depth) * style.padding.x + style.padding.x
     if item.type == "file" then
       local icon1 = item.expanded and "-" or "+"
-      common.draw_text(style.icon_font, color, icon1, nil, x, y, 0, h)
+      common.draw_text(style.icon_font, file_color, icon1, nil, x, y, 0, h)
       x = x + style.padding.x
-      common.draw_text(style.icon_font, color, "f", nil, x, y, 0, h)
+      common.draw_text(style.icon_font, file_color, "f", nil, x, y, 0, h)
       x = x + icon_width
     elseif item.type == "group" then
       local icon1 = item.expanded and "-" or ">"
-      common.draw_text(style.icon_font, color, icon1, nil, x, y, 0, h)
+      common.draw_text(style.icon_font, tag_color, icon1, nil, x, y, 0, h)
       x = x + icon_width / 2
     else
       if config.todo_mode == "tag" then
@@ -321,21 +340,21 @@ function TodoTreeView:draw()
       else
         x = x + style.padding.x * 1.5
       end
-      common.draw_text(style.icon_font, color, "i", nil, x, y, 0, h)
+      common.draw_text(style.icon_font, text_color, "i", nil, x, y, 0, h)
       x = x + icon_width
     end
 
     -- text
     x = x + spacing
     if item.type == "file" then
-      common.draw_text(style.font, color, item.filename, nil, x, y, 0, h)
+      common.draw_text(style.font, file_color, item.filename, nil, x, y, 0, h)
     elseif item.type == "group" then
-      common.draw_text(style.font, color, item.tag, nil, x, y, 0, h)
+      common.draw_text(style.font, tag_color, item.tag, nil, x, y, 0, h)
     else
       if config.todo_mode == "file" then
-        common.draw_text(style.font, color, item.tag.." - "..item.text, nil, x, y, 0, h)
+        common.draw_text(style.font, text_color, item.tag.." - "..item.text, nil, x, y, 0, h)
       else
-        common.draw_text(style.font, color, item.text, nil, x, y, 0, h)
+        common.draw_text(style.font, text_color, item.text, nil, x, y, 0, h)
       end
     end
   end
