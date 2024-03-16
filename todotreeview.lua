@@ -358,6 +358,19 @@ function TodoTreeView:get_hovered_parent()
   return nil, 0
 end
 
+function TodoTreeView:update_scroll_position()
+  local h = self:get_item_height()
+  local _, min_y, _, max_y = self:get_content_bounds()
+  local start_row = math.floor(min_y / h)
+  local end_row = math.floor(max_y / h)
+  if self.focus_index < start_row then
+    self.scroll.to.y = self.focus_index * h
+  end
+  if self.focus_index + 1 > end_row then
+    self.scroll.to.y = (self.focus_index * h) - self.size.y + h
+  end
+end
+
 -- init
 local view = TodoTreeView()
 local node = core.root_view:get_active_node()
@@ -404,6 +417,7 @@ command.add(
     if view.focus_index > 0 then
       view.focus_index = view.focus_index - 1
       view.hovered_item = view:get_item_by_index(view.focus_index)
+      view:update_scroll_position()
     end
   end,
 
@@ -413,6 +427,7 @@ command.add(
     if next_item then
       view.focus_index = next_index
       view.hovered_item = next_item
+      view:update_scroll_position()
     end
   end,
 
@@ -425,6 +440,7 @@ command.add(
       view.hovered_item.expanded = false
     else
       view.hovered_item, view.focus_index = view:get_hovered_parent()
+      view:update_scroll_position()
     end
   end,
 
@@ -448,6 +464,7 @@ command.add(
     end
 
     view:goto_hovered_item()
+    view.hovered_item = nil
   end,
 })
 
