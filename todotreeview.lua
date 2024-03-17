@@ -5,6 +5,8 @@ local config = require "core.config"
 local keymap = require "core.keymap"
 local style = require "core.style"
 local View = require "core.view"
+local StatusView = require "core.statusview"
+local CommandView = require "core.commandview"
 
 local TodoTreeView = View:extend()
 
@@ -399,6 +401,18 @@ local view = TodoTreeView()
 local node = core.root_view:get_active_node()
 view.size.x = config.treeview_size
 node:split("right", view, true)
+
+local get_items = StatusView.get_items
+function StatusView:get_items()
+  local left, right  = get_items(self)
+
+  if not core.active_view:is(CommandView) and #view.filter > 0 then
+    table.insert(right, 1, StatusView.separator)
+    table.insert(right, 1, string.format("Filter: %s", view.filter))
+  end
+
+  return left, right
+end
 
 -- register commands and keymap
 local previous_view = nil

@@ -6,6 +6,7 @@ local config = require "core.config"
 local keymap = require "core.keymap"
 local style = require "core.style"
 local View = require "core.view"
+local CommandView = require "core.commandview"
 
 local TodoTreeView = View:extend()
 
@@ -410,6 +411,23 @@ local view = TodoTreeView()
 local node = core.root_view:get_active_node()
 view.size.x = config.treeview_size
 node:split("right", view, {x=true}, true)
+
+core.status_view:add_item({
+  predicate = function()
+    return #view.filter > 0 and core.active_view and not core.active_view:is(CommandView)
+  end,
+  name = "todotreeview:filter",
+  alignment = core.status_view.Item.RIGHT,
+  get_item = function()
+    return {
+      style.text,
+      string.format("Filter: %s", view.filter)
+    }
+  end,
+  position = 1,
+  tooltip = "Todos filtered by",
+  separator = core.status_view.separator2
+})
 
 -- register commands and keymap
 local previous_view = nil
