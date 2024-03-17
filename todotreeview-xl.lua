@@ -535,7 +535,7 @@ command.add(
 keymap.add { ["ctrl+shift+t"] = "todotreeview:toggle" }
 keymap.add { ["ctrl+shift+e"] = "todotreeview:expand-items" }
 keymap.add { ["ctrl+shift+h"] = "todotreeview:hide-items" }
-keymap.add { ["ctrl+shift+b"] = "todotreeview:filter-items" }
+keymap.add { ["ctrl+shift+b"] = "todotreeview:filter-notes" }
 keymap.add { ["up"] = "todotreeview:previous" }
 keymap.add { ["down"] = "todotreeview:next" }
 keymap.add { ["left"] = "todotreeview:collapse" }
