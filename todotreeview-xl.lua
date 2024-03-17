@@ -440,10 +440,9 @@ command.add(nil, {
     end
   end,
 
-  ["todotreeview:filter-items"] = function()
+  ["todotreeview:filter-notes"] = function()
     local todo_view_focus = core.active_view:is(TodoTreeView)
     local previous_filter = view.filter
-    core.command_view:set_text(view.filter, true)
     local submit = function(text)
       view.filter = text
       if todo_view_focus then
@@ -458,7 +457,12 @@ command.add(nil, {
     local cancel = function(explicit)
       view.filter = previous_filter
     end
-    core.command_view:enter("Filter Notes", submit, suggest, cancel)
+    core.command_view:enter("Filter Notes", {
+      text = view.filter,
+      submit = submit,
+      suggest = suggest,
+      cancel = cancel
+    })
   end,
 })
 

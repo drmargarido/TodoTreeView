@@ -429,7 +429,7 @@ command.add(nil, {
     end
   end,
 
-  ["todotreeview:filter-items"] = function()
+  ["todotreeview:filter-notes"] = function()
     local todo_view_focus = core.active_view:is(TodoTreeView)
     local previous_filter = view.filter
     core.command_view:set_text(view.filter, true)
