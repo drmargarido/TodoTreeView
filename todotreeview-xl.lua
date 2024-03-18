@@ -18,6 +18,10 @@ config.tag_colors = {
   FIXME       = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
   IMPROVEMENT = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
 }
+config.todo_file_color = {
+  name=style.text,
+  hover=style.accent
+}
 
 -- Paths or files to be ignored
 config.ignore_paths = {}
@@ -30,6 +34,12 @@ config.todo_expanded = true
 config.todo_mode = "tag"
 
 config.treeview_size = 200 * SCALE -- default size
+
+-- Only used in file mode when the tag and the text are on the same line
+config.todo_separator = " - "
+
+-- Text displayed when the note is empty
+config.todo_default_text = "blank"
 
 function TodoTreeView:new()
   TodoTreeView.super.new(self)
@@ -125,7 +135,7 @@ local function find_file_todos(t, filename)
         d.filename = filename
         d.text = extended_line:sub(e+1)
         if d.text == "" then
-          d.text = "blank"
+          d.text = config.todo_default_text
         end
         d.line = n
         d.col = s
@@ -308,7 +318,7 @@ function TodoTreeView:draw()
   for item, x,y,w,h in self:each_item() do
     local text_color = style.text
     local tag_color = style.text
-    local file_color = style.text
+    local file_color = config.todo_file_color.name or style.text
     if config.tag_colors[item.tag] then
       text_color = config.tag_colors[item.tag].text or style.text
       tag_color = config.tag_colors[item.tag].tag or style.text
@@ -319,7 +329,7 @@ function TodoTreeView:draw()
       renderer.draw_rect(x, y, w, h, style.line_highlight)
       text_color = style.accent
       tag_color = style.accent
-      file_color = style.accent
+      file_color = config.todo_file_color.hover or style.accent
       if config.tag_colors[item.tag] then
         text_color = config.tag_colors[item.tag].text_hover or style.accent
         tag_color = config.tag_colors[item.tag].tag_hover or style.accent
@@ -357,7 +367,9 @@ function TodoTreeView:draw()
       common.draw_text(style.font, tag_color, item.tag, nil, x, y, 0, h)
     else
       if config.todo_mode == "file" then
-        common.draw_text(style.font, text_color, item.tag.." - "..item.text, nil, x, y, 0, h)
+        common.draw_text(style.font, tag_color, item.tag, nil, x, y, 0, h)
+        x = x + style.font:get_width(item.tag)
+        common.draw_text(style.font, text_color, config.todo_separator..item.text, nil, x, y, 0, h)
       else
         common.draw_text(style.font, text_color, item.text, nil, x, y, 0, h)
       end
