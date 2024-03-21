@@ -17,6 +17,7 @@ configure their colors using the `tag_colors` field if wanted.
 You can select between two modes:
 * tag - To display the notes organized by the note type
 * file - To display the notes organized by file
+* file_tag - To display the notes organized by file and note type
 
 The plugin registers the following key bindings:
 * ctrl+shift+t - Toggles the visibility of the view
@@ -64,7 +65,7 @@ config.todo_file_color = {
 }
 
 -- Change display mode
-config.todo_mode = "file"
+config.todo_mode = "file" -- Or "file_tag"
 
 -- Change the separator between the tag and the text in file mode
 config.todo_separator = " -> "

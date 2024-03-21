@@ -2,7 +2,7 @@
   "addons": [
     {
       "id": "todotreeview",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "mod_version": "3",
       "description": "Todo tree viewer for annotations in code like `TODO`, `BUG`, `FIX`, `IMPROVEMENT`",
       "path": "todotreeview-xl.lua"

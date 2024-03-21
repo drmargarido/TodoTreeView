@@ -31,6 +31,7 @@ config.todo_expanded = true
 
 -- 'tag' mode can be used to group the todos by tags
 -- 'file' mode can be used to group the todos by files
+-- 'file_tag' mode can be used to group the todos by files and then by tags inside the files
 config.todo_mode = "tag"
 
 config.treeview_size = 200 * SCALE -- default size
@@ -83,6 +84,28 @@ function TodoTreeView:refresh_cache()
 
         if config.todo_mode == "file" then
           items[cached.filename] = cached
+        elseif config.todo_mode == "file_tag" then
+          local file_t = {}
+          file_t.expanded = config.todo_expanded
+          file_t.type = "file"
+          file_t.tags = {}
+          file_t.todos = {}
+          file_t.filename = cached.filename
+          file_t.abs_filename = cached.abs_filename
+          items[cached.filename] = file_t
+          for _, todo in ipairs(cached.todos) do
+            local tag = todo.tag
+            if not file_t.tags[tag] then
+              local tag_t = {}
+              tag_t.expanded = config.todo_expanded
+              tag_t.type = "group"
+              tag_t.todos = {}
+              tag_t.tag = tag
+              file_t.tags[tag] = tag_t
+            end
+
+            table.insert(file_t.tags[tag].todos, todo)
+          end
         else
           for _, todo in ipairs(cached.todos) do
             local tag = todo.tag
@@ -131,6 +154,7 @@ local function find_file_todos(t, filename)
       local s, e = extended_line:find(match_str)
       if s then
         local d = {}
+        d.type = "todo"
         d.tag = todo_tag
         d.filename = filename
         d.text = extended_line:sub(e+1)
@@ -160,6 +184,7 @@ function TodoTreeView:get_cached(item)
     t.abs_filename = system.absolute_path(item.filename)
     t.type = item.type
     t.todos = {}
+    t.tags = {}
     find_file_todos(t.todos, t.filename)
     self.cache[t.filename] = t
   end
@@ -246,6 +271,32 @@ function TodoTreeView:each_item()
           end
         end
       end
+
+      if item.tags then
+        local first_tag = true
+        for _, tag in pairs(item.tags) do
+          if first_tag then
+            coroutine.yield(item, ox, y, w, h)
+            y = y + h
+            first_tag = false
+          end
+          if item.expanded then
+            coroutine.yield(tag, ox, y, w, h)
+            y = y + h
+
+            for _, todo in ipairs(tag.todos) do
+              if item.expanded and tag.expanded then
+                local in_todo = string.find(todo.text:lower(), self.filter:lower())
+                if #self.filter == 0 or in_todo then
+                  coroutine.yield(todo, ox, y, w, h)
+                  y = y + h
+                end
+              end
+            end
+          end
+        end
+      end
+
     end
   end)
 end
@@ -346,6 +397,10 @@ function TodoTreeView:draw()
       common.draw_text(style.icon_font, file_color, "f", nil, x, y, 0, h)
       x = x + icon_width
     elseif item.type == "group" then
+      if config.todo_mode == "file_tag" then
+        x = x + style.padding.x * 0.75
+      end
+
       local icon1 = item.expanded and "-" or ">"
       common.draw_text(style.icon_font, tag_color, icon1, nil, x, y, 0, h)
       x = x + icon_width / 2
@@ -386,6 +441,33 @@ function TodoTreeView:get_item_by_index(index)
     i = i + 1
   end
   return nil
+end
+
+function TodoTreeView:get_hovered_parent_file_tag()
+  local file_parent = nil
+  local file_parent_index = 0
+  local group_parent = nil
+  local group_parent_index = 0
+  local i = 0
+  for item in self:each_item() do
+    if item.type == "file" then
+      file_parent = item
+      file_parent_index = i
+    end
+    if item.type == "group" then
+      group_parent = item
+      group_parent_index = i
+    end
+    if i == self.focus_index then
+      if item.type == "file" or item.type == "group" then
+        return file_parent, file_parent_index
+      else
+        return group_parent, group_parent_index
+      end
+    end
+    i = i + 1
+  end
+  return nil, 0
 end
 
 function TodoTreeView:get_hovered_parent()
@@ -523,11 +605,20 @@ command.add(
       return
     end
 
-    if view.hovered_item.type == "file" or view.hovered_item.type == "group" then
+    if view.hovered_item.type == "file" then
       view.hovered_item.expanded = false
     else
-      view.hovered_item, view.focus_index = view:get_hovered_parent()
-      view:update_scroll_position()
+      if view.hovered_item.type == "group" and view.hovered_item.expanded then
+        view.hovered_item.expanded = false
+      else
+        if config.todo_mode == "file_tag" then
+          view.hovered_item, view.focus_index = view:get_hovered_parent_file_tag()
+        else
+          view.hovered_item, view.focus_index = view:get_hovered_parent()
+        end
+
+        view:update_scroll_position()
+      end
     end
   end,
 
