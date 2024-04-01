@@ -69,6 +69,24 @@ local function is_file_ignored(filename)
   return false
 end
 
+function TodoTreeView.get_all_files()
+  local all_files = {}
+  for _, file in ipairs(core.project_files) do
+    if file.filename then
+      all_files[file.filename] = file
+    end
+  end
+  for _, file in ipairs(core.docs) do
+    if file.filename and not all_files[file.filename] then
+      all_files[file.filename] = {
+        filename = file.filename,
+        type = "file"
+      }
+    end
+  end
+  return all_files
+end
+
 function TodoTreeView:refresh_cache()
   local items = {}
   if not next(self.items) then
@@ -77,7 +95,7 @@ function TodoTreeView:refresh_cache()
   self.updating_cache = true
 
   core.add_thread(function()
-    for _, item in ipairs(core.project_files) do
+    for _, item in pairs(self.get_all_files()) do
       local ignored = is_file_ignored(item.filename)
       if not ignored and item.type == "file" then
         local cached = self:get_cached(item)
@@ -220,8 +238,10 @@ end
 
 
 function TodoTreeView:check_cache()
+  local existing_docs = {}
   for _, doc in ipairs(core.docs) do
     if doc.filename then
+      existing_docs[doc.filename] = true
       local info = system.get_file_info(doc.filename)
       local cached = self:get_cached_time(doc)
       if not info and cached then
@@ -234,7 +254,24 @@ function TodoTreeView:check_cache()
         self.times_cache[doc] = info.modified
         self.cache[doc.filename] = nil
         self.cache_updated = false
+      elseif not cached then
+        self.cache_updated = false
       end
+    end
+  end
+
+  for _, file in ipairs(core.project_files) do
+    existing_docs[file.filename] = true
+  end
+
+  -- Check for docs in cache that may not exist anymore 
+  -- for example: (Openend from outside of project and closed)
+  for filename, doc in pairs(self.cache) do
+    local exists = existing_docs[filename]
+    if not exists then
+      self.times_cache[doc] = nil
+      self.cache[filename] = nil
+      self.cache_updated = false
     end
   end
 
