@@ -19,6 +19,11 @@ You can select between two modes:
 * file - To display the notes organized by file
 * file_tag - To display the notes organized by file and note type
 
+You can also define between two scopes:
+* all - Will display all the notes in the project and opened files all the time
+* focused - Will display the notes only for the currently opened file or all files
+if no file is open or focused.
+
 The plugin registers the following key bindings:
 * ctrl+shift+t - Toggles the visibility of the view
 * ctrl+shift+e - Expands all the groups
@@ -66,6 +71,9 @@ config.todo_file_color = {
 
 -- Change display mode
 config.todo_mode = "file" -- Or "file_tag"
+
+-- Change scope
+config.todo_scope = "focused"
 
 -- Change the separator between the tag and the text in file mode
 config.todo_separator = " -> "

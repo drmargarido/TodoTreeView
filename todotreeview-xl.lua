@@ -7,6 +7,7 @@ local keymap = require "core.keymap"
 local style = require "core.style"
 local View = require "core.view"
 local CommandView = require "core.commandview"
+local DocView = require "core.docview"
 
 local TodoTreeView = View:extend()
 
@@ -42,6 +43,17 @@ config.todo_separator = " - "
 -- Text displayed when the note is empty
 config.todo_default_text = "blank"
 
+local SCOPES = {
+  ALL     = "all",
+  FOCUSED = "focused",
+}
+
+-- Scope of the displayed tags
+-- 'all' scope to show all tags from the project all the time
+-- 'focused' scope to show the tags from the currently focused file
+config.todo_scope = SCOPES.ALL
+
+
 function TodoTreeView:new()
   TodoTreeView.super.new(self)
   self.scrollable = true
@@ -53,6 +65,7 @@ function TodoTreeView:new()
   self.init_size = true
   self.focus_index = 0
   self.filter = ""
+  self.previous_focused_file = nil
 
   -- Items are generated from cache according to the mode
   self.items = {}
@@ -67,6 +80,23 @@ local function is_file_ignored(filename)
   end
 
   return false
+end
+
+function TodoTreeView:is_file_in_scope(filename)
+  if config.todo_scope == SCOPES.ALL then
+    return true
+  elseif config.todo_scope == SCOPES.FOCUSED then
+    if core.active_view:is(CommandView) or core.active_view:is(TodoTreeView) then
+      if self.previous_focused_file then
+        return self.previous_focused_file == filename
+      end
+    elseif core.active_view:is(DocView) then
+      return core.active_view.doc.filename == filename
+    end
+    return true
+  else
+    assert(false, "Unknown scope defined ("..config.todo_scope..")")
+  end
 end
 
 function TodoTreeView.get_all_files()
@@ -264,7 +294,7 @@ function TodoTreeView:check_cache()
     existing_docs[file.filename] = true
   end
 
-  -- Check for docs in cache that may not exist anymore 
+  -- Check for docs in cache that may not exist anymore
   -- for example: (Openend from outside of project and closed)
   for filename, doc in pairs(self.cache) do
     local exists = existing_docs[filename]
@@ -293,23 +323,25 @@ function TodoTreeView:each_item()
     local w = self.size.x
     local h = self:get_item_height()
 
-    for _, item in pairs(self.items) do
-      if #item.todos > 0 then
+    for filename, item in pairs(self.items) do
+      local in_scope = item.type == "group" or self:is_file_in_scope(item.filename)
+      if in_scope and #item.todos > 0 then
         coroutine.yield(item, ox, y, w, h)
         y = y + h
 
         for _, todo in ipairs(item.todos) do
           if item.expanded then
             local in_todo = string.find(todo.text:lower(), self.filter:lower())
-            if #self.filter == 0 or in_todo then
+            local todo_in_scope = self:is_file_in_scope(todo.filename)
+            if todo_in_scope and (#self.filter == 0 or in_todo) then
               coroutine.yield(todo, ox, y, w, h)
               y = y + h
             end
           end
         end
-      end
 
-      if item.tags then
+      end
+      if in_scope and item.tags then
         local first_tag = true
         for _, tag in pairs(item.tags) do
           if first_tag then
@@ -324,7 +356,8 @@ function TodoTreeView:each_item()
             for _, todo in ipairs(tag.todos) do
               if item.expanded and tag.expanded then
                 local in_todo = string.find(todo.text:lower(), self.filter:lower())
-                if #self.filter == 0 or in_todo then
+                local todo_in_scope = self:is_file_in_scope(todo.filename)
+                if todo_in_scope and (#self.filter == 0 or in_todo) then
                   coroutine.yield(todo, ox, y, w, h)
                   y = y + h
                 end
@@ -380,6 +413,15 @@ end
 
 
 function TodoTreeView:update()
+  -- Update focus
+  if core.active_view:is(DocView) then
+    self.previous_focused_file = core.active_view.doc.filename
+  elseif core.active_view:is(CommandView) or core.active_view:is(TodoTreeView) then
+    -- Do nothing
+  else
+    self.previous_focused_file = nil
+  end
+
   self.scroll.to.y = math.max(0, self.scroll.to.y)
 
   -- update width
