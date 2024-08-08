@@ -54,6 +54,8 @@ local SCOPES = {
 config.todo_scope = SCOPES.ALL
 
 
+local icon_small_font = style.icon_font:copy(10 * SCALE)
+
 function TodoTreeView:new()
   TodoTreeView.super.new(self)
   self.scrollable = true
@@ -480,8 +482,11 @@ function TodoTreeView:draw()
         x = x + style.padding.x * 0.75
       end
 
-      local icon1 = item.expanded and "-" or ">"
-      common.draw_text(style.icon_font, tag_color, icon1, nil, x, y, 0, h)
+      if item.expanded then
+        common.draw_text(style.icon_font, tag_color, "-", nil, x, y, 0, h)
+      else
+        common.draw_text(icon_small_font, tag_color, ">", nil, x, y, 0, h)
+      end
       x = x + icon_width / 2
     else
       if config.todo_mode == "tag" then
