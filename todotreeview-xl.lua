@@ -11,48 +11,118 @@ local DocView = require "core.docview"
 
 local TodoTreeView = View:extend()
 
-config.todo_tags = {"TODO", "BUG", "FIX", "FIXME", "IMPROVEMENT"}
-config.tag_colors = {
-  TODO        = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
-  BUG         = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
-  FIX         = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
-  FIXME       = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
-  IMPROVEMENT = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
-}
-config.todo_file_color = {
-  name=style.text,
-  hover=style.accent
-}
-
--- Paths or files to be ignored
-config.ignore_paths = {}
-
--- Tells if the plugin should start with the nodes expanded
-config.todo_expanded = true
-
--- 'tag' mode can be used to group the todos by tags
--- 'file' mode can be used to group the todos by files
--- 'file_tag' mode can be used to group the todos by files and then by tags inside the files
-config.todo_mode = "tag"
-
-config.treeview_size = 200 * SCALE -- default size
-
--- Only used in file mode when the tag and the text are on the same line
-config.todo_separator = " - "
-
--- Text displayed when the note is empty
-config.todo_default_text = "blank"
-
 local SCOPES = {
   ALL     = "all",
   FOCUSED = "focused",
 }
 
--- Scope of the displayed tags
--- 'all' scope to show all tags from the project all the time
--- 'focused' scope to show the tags from the currently focused file
-config.todo_scope = SCOPES.ALL
+config.plugins.todotreeview = common.merge({
+  todo_tags = {"TODO", "BUG", "FIX", "FIXME", "IMPROVEMENT"},
+  tag_colors = {
+    TODO        = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+    BUG         = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+    FIX         = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+    FIXME       = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+    IMPROVEMENT = {tag=style.text, tag_hover=style.accent, text=style.text, text_hover=style.accent},
+  },
+  todo_file_color = {
+    name=style.text,
+    hover=style.accent
+  },
+  -- Paths or files to be ignored
+  ignore_paths = {},
 
+  -- Tells if the plugin should start with the nodes expanded
+  todo_expanded = true,
+
+  -- 'tag' mode can be used to group the todos by tags
+  -- 'file' mode can be used to group the todos by files
+  -- 'file_tag' mode can be used to group the todos by files and then by tags inside the files
+  todo_mode = "tag",
+
+  treeview_size = 200 * SCALE, -- default size
+
+  -- Only used in file mode when the tag and the text are on the same line
+  todo_separator = " - ",
+
+  -- Text displayed when the note is empty
+  todo_default_text = "blank",
+
+  -- Scope of the displayed tags
+  -- 'all' scope to show all tags from the project all the time
+  -- 'focused' scope to show the tags from the currently focused file
+  todo_scope = SCOPES.ALL,
+
+  -- The config specification used by the settings gui
+  config_spec = {
+    name = "TodoTreeView",
+    {
+      label = "Todo Tags",
+      description = "List of tags to parse and show in the todo panel.",
+      path = "todo_tags",
+      type = "list_strings",
+      default = {"TODO", "BUG", "FIX", "FIXME", "IMPROVEMENT"},
+    },
+    {
+      label = "Paths to ignore",
+      description = "Paths to be ignored when parsing the tags.",
+      path = "ignore_paths",
+      type = "list_strings",
+      default = {}
+    },
+    {
+      label = "Groups Expanded",
+      description = "Defines if the groups (Tags / Files) should start expanded.",
+      path = "todo_expanded",
+      type = "toggle",
+      default = true,
+    },
+    {
+      label = "Mode for the todos",
+      description = "Mode for the todos to be displayed.",
+      path = "todo_mode",
+      type = "selection",
+      default = "tag",
+      values = {
+        {"Tag", "tag"},
+        {"File", "file"},
+        {"FileTag", "file_tag"}
+      }
+    },
+    {
+      label = "Treeview Size",
+      description = "Size of the todo tree view panel.",
+      path = "treeview_size",
+      type = "number",
+      default = 200 * SCALE,
+    },
+    {
+      label = "Todo separator",
+      description = "Separator used in file mode when the tag and the text are on the same line.",
+      path = "todo_separator",
+      type = "string",
+      default = " - ",
+    },
+    {
+      label = "Empty Default Text",
+      description = "Default text displayed for a note when it has no text.",
+      path = "todo_default_text",
+      type = "string",
+      default = " - ",
+    },
+    {
+      label = "Todo Scope",
+      description = "Scope for the notes to be picked, all notes or currently focused file.",
+      path = "todo_scope",
+      type = "selection",
+      default = "all",
+      values = {
+        {"All", "all"},
+        {"Focused", "focused"},
+      }
+    },
+  }
+}, config.plugins.todotreeview)
 
 local icon_small_font = style.icon_font:copy(10 * SCALE)
 
@@ -74,7 +144,7 @@ function TodoTreeView:new()
 end
 
 local function is_file_ignored(filename)
-  for _, path in ipairs(config.ignore_paths) do
+  for _, path in ipairs(config.plugins.todotreeview.ignore_paths) do
     local s, _ = filename:find(path)
     if s then
       return true
@@ -85,9 +155,9 @@ local function is_file_ignored(filename)
 end
 
 function TodoTreeView:is_file_in_scope(filename)
-  if config.todo_scope == SCOPES.ALL then
+  if config.plugins.todotreeview.todo_scope == SCOPES.ALL then
     return true
-  elseif config.todo_scope == SCOPES.FOCUSED then
+  elseif config.plugins.todotreeview.todo_scope == SCOPES.FOCUSED then
     if core.active_view:is(CommandView) or core.active_view:is(TodoTreeView) then
       if self.previous_focused_file then
         return self.previous_focused_file == filename
@@ -97,7 +167,7 @@ function TodoTreeView:is_file_in_scope(filename)
     end
     return true
   else
-    assert(false, "Unknown scope defined ("..config.todo_scope..")")
+    assert(false, "Unknown scope defined ("..config.plugins.todotreeview.todo_scope..")")
   end
 end
 
@@ -132,11 +202,11 @@ function TodoTreeView:refresh_cache()
       if not ignored and item.type == "file" then
         local cached = self:get_cached(item)
 
-        if config.todo_mode == "file" then
+        if config.plugins.todotreeview.todo_mode == "file" then
           items[cached.filename] = cached
-        elseif config.todo_mode == "file_tag" then
+        elseif config.plugins.todotreeview.todo_mode == "file_tag" then
           local file_t = {}
-          file_t.expanded = config.todo_expanded
+          file_t.expanded = config.plugins.todotreeview.todo_expanded
           file_t.type = "file"
           file_t.tags = {}
           file_t.todos = {}
@@ -147,7 +217,7 @@ function TodoTreeView:refresh_cache()
             local tag = todo.tag
             if not file_t.tags[tag] then
               local tag_t = {}
-              tag_t.expanded = config.todo_expanded
+              tag_t.expanded = config.plugins.todotreeview.todo_expanded
               tag_t.type = "group"
               tag_t.todos = {}
               tag_t.tag = tag
@@ -161,7 +231,7 @@ function TodoTreeView:refresh_cache()
             local tag = todo.tag
             if not items[tag] then
               local t = {}
-              t.expanded = config.todo_expanded
+              t.expanded = config.plugins.todotreeview.todo_expanded
               t.type = "group"
               t.todos = {}
               t.tag = tag
@@ -175,7 +245,7 @@ function TodoTreeView:refresh_cache()
     end
 
     -- Copy expanded from old items
-    if config.todo_mode == "tag" and next(self.items) then
+    if config.plugins.todotreeview.todo_mode == "tag" and next(self.items) then
       for tag, data in pairs(self.items) do
         if items[tag] then
           items[tag].expanded = data.expanded
@@ -196,7 +266,7 @@ local function find_file_todos(t, filename)
   if not fp then return t end
   local n = 1
   for line in fp:lines() do
-    for _, todo_tag in ipairs(config.todo_tags) do
+    for _, todo_tag in ipairs(config.plugins.todotreeview.todo_tags) do
       -- Add spaces at the start and end of line so the pattern will pick
       -- tags at the start and at the end of lines
       local extended_line = " "..line.." "
@@ -209,7 +279,7 @@ local function find_file_todos(t, filename)
         d.filename = filename
         d.text = extended_line:sub(e+1)
         if d.text == "" then
-          d.text = config.todo_default_text
+          d.text = config.plugins.todotreeview.todo_default_text
         end
         d.line = n
         d.col = s
@@ -229,7 +299,7 @@ function TodoTreeView:get_cached(item)
   local t = self.cache[item.filename]
   if not t then
     t = {}
-    t.expanded = config.todo_expanded
+    t.expanded = config.plugins.todotreeview.todo_expanded
     t.filename = item.filename
     t.abs_filename = system.absolute_path(item.filename)
     t.type = item.type
@@ -248,7 +318,7 @@ end
 
 function TodoTreeView:set_target_size(axis, value)
   if axis == "x" then
-    config.treeview_size = value
+    config.plugins.todotreeview.treeview_size = value
     return true
   end
 end
@@ -427,7 +497,7 @@ function TodoTreeView:update()
   self.scroll.to.y = math.max(0, self.scroll.to.y)
 
   -- update width
-  local dest = self.visible and config.treeview_size or 0
+  local dest = self.visible and config.plugins.todotreeview.treeview_size or 0
   if self.init_size then
     self.size.x = dest
     self.init_size = false
@@ -450,10 +520,10 @@ function TodoTreeView:draw()
   for item, x,y,w,h in self:each_item() do
     local text_color = style.text
     local tag_color = style.text
-    local file_color = config.todo_file_color.name or style.text
-    if config.tag_colors[item.tag] then
-      text_color = config.tag_colors[item.tag].text or style.text
-      tag_color = config.tag_colors[item.tag].tag or style.text
+    local file_color = config.plugins.todotreeview.todo_file_color.name or style.text
+    if config.plugins.todotreeview.tag_colors[item.tag] then
+      text_color = config.plugins.todotreeview.tag_colors[item.tag].text or style.text
+      tag_color = config.plugins.todotreeview.tag_colors[item.tag].tag or style.text
     end
 
     -- hovered item background
@@ -461,10 +531,10 @@ function TodoTreeView:draw()
       renderer.draw_rect(x, y, w, h, style.line_highlight)
       text_color = style.accent
       tag_color = style.accent
-      file_color = config.todo_file_color.hover or style.accent
-      if config.tag_colors[item.tag] then
-        text_color = config.tag_colors[item.tag].text_hover or style.accent
-        tag_color = config.tag_colors[item.tag].tag_hover or style.accent
+      file_color = config.plugins.todotreeview.todo_file_color.hover or style.accent
+      if config.plugins.todotreeview.tag_colors[item.tag] then
+        text_color = config.plugins.todotreeview.tag_colors[item.tag].text_hover or style.accent
+        tag_color = config.plugins.todotreeview.tag_colors[item.tag].tag_hover or style.accent
       end
     end
 
@@ -478,7 +548,7 @@ function TodoTreeView:draw()
       common.draw_text(style.icon_font, file_color, "f", nil, x, y, 0, h)
       x = x + icon_width
     elseif item.type == "group" then
-      if config.todo_mode == "file_tag" then
+      if config.plugins.todotreeview.todo_mode == "file_tag" then
         x = x + style.padding.x * 0.75
       end
 
@@ -489,7 +559,7 @@ function TodoTreeView:draw()
       end
       x = x + icon_width / 2
     else
-      if config.todo_mode == "tag" then
+      if config.plugins.todotreeview.todo_mode == "tag" then
         x = x + style.padding.x
       else
         x = x + style.padding.x * 1.5
@@ -505,10 +575,10 @@ function TodoTreeView:draw()
     elseif item.type == "group" then
       common.draw_text(style.font, tag_color, item.tag, nil, x, y, 0, h)
     else
-      if config.todo_mode == "file" then
+      if config.plugins.todotreeview.todo_mode == "file" then
         common.draw_text(style.font, tag_color, item.tag, nil, x, y, 0, h)
         x = x + style.font:get_width(item.tag)
-        common.draw_text(style.font, text_color, config.todo_separator..item.text, nil, x, y, 0, h)
+        common.draw_text(style.font, text_color, config.plugins.todotreeview.todo_separator..item.text, nil, x, y, 0, h)
       else
         common.draw_text(style.font, text_color, item.text, nil, x, y, 0, h)
       end
@@ -587,7 +657,7 @@ end
 -- init
 local view = TodoTreeView()
 local node = core.root_view:get_active_node()
-view.size.x = config.treeview_size
+view.size.x = config.plugins.todotreeview.treeview_size
 node:split("right", view, {x=true}, true)
 
 core.status_view:add_item({
@@ -695,7 +765,7 @@ command.add(
       if view.hovered_item.type == "group" and view.hovered_item.expanded then
         view.hovered_item.expanded = false
       else
-        if config.todo_mode == "file_tag" then
+        if config.plugins.todotreeview.todo_mode == "file_tag" then
           view.hovered_item, view.focus_index = view:get_hovered_parent_file_tag()
         else
           view.hovered_item, view.focus_index = view:get_hovered_parent()

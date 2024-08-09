@@ -44,8 +44,10 @@ Example of the `tag` view
 `todotreeview-xl.lua` if you are using lite-xl) to the folder `data/plugins/`
 of the lite editor.
 2. If you want to register extra tags or change the display mode or update any
-other of the settings you can edit your `data/user/init.lua` file (run the
-`core:open-user-module` command to open the user file if using lite-xl):
+other of the settings you can edit your `data/user/init.lua` file.
+3. If you are using lite-xl run the `core:open-user-module` command to open the
+user file. Also use `config.plugins.todotreeview` instead of just `config` to
+modify the multiple settings.
 ```lua
 local config = require "core.config"
 local common = require "core.common"
